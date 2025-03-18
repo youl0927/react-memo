@@ -1,10 +1,19 @@
 import { memo } from 'react';
+import MemoItem from './MemoItem';
 
-function MemoList({ memos }) {
+function MemoList({ memos, setSelectedMemoIndex, selectedMemoIndex }) {
   return (
     <div>
       {memos.map((memo, index) => (
-        <div key={index}>{memo.title}</div>
+        <MemoItem
+          key={index}
+          onClick={() => {
+            setSelectedMemoIndex(index);
+          }}
+          isSelected={index === selectedMemoIndex}
+        >
+          {memo.title}
+        </MemoItem>
       ))}
     </div>
   );
