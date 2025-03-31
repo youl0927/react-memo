@@ -1,48 +1,71 @@
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import './App.css';
-import MemoContainer from './components/MemoContainers';
+import MemoContainer from './components/MemoContainer';
 import SideBar from './components/SideBar';
+import { getItem, setItem } from './lib/storage';
+import debounce from 'lodash.debounce';
+
+const debouncedSetItem = debounce(setItem, 5000);
 
 function App() {
-  const [memos, setMemos] = useState([
-    {
-      title: 'Memo 1',
-      content: 'This is memo',
-      createAt: 1742091361708, //시간 값
-      updateAt: 1742091361708, //시간값
-    },
-    {
-      title: 'Memo 2',
-      content: 'This is memo2',
-      createAt: 1742091361799, //시간 값
-      updateAt: 1742091361799, //시간값
-    },
-  ]);
+  const [memos, setMemos] = useState(getItem('memo') || []);
 
   const [selectedMemoIndex, setSelectedMemoIndex] = useState(0);
 
-  const setMemo = (newMemo) => {
-    const newMemos = [...memos];
+  const setMemo = useCallback(
+    (newMemo) => {
+      const newMemos = [...memos];
 
-    newMemos[selectedMemoIndex] = newMemo;
+      newMemos[selectedMemoIndex] = newMemo;
 
-    console.log('memos', memos);
-    setMemos(newMemos);
-  };
+      console.log('memos', memos);
+      // setMemos(newMemos);
+      setMemos((state) => {
+        const newMemos = [...memos];
+        newMemos[selectedMemoIndex] = newMemo;
+        debouncedSetItem('memo', newMemos);
 
-  const addMemo = () => {
+        return newMemos;
+      });
+    },
+    [selectedMemoIndex],
+  );
+
+  const addMemo = useCallback(() => {
     const now = new Date().getTime();
-    setMemos([
-      ...memos,
-      {
-        title: 'Untitled',
-        content: '',
-        createAt: now,
-        updateAt: now,
-      },
-    ]);
+
+    setMemos((memos) => {
+      const newMemos = [
+        ...memos,
+        {
+          title: 'Untitled',
+          content: '',
+          createAt: now,
+          updateAt: now,
+        },
+      ];
+
+      return newMemos;
+    });
+
     setSelectedMemoIndex(memos.length);
-  };
+  }, [memos]);
+
+  const deleteMemo = useCallback(
+    (index) => {
+      setMemos((memos) => {
+        const newMemos = [...memos];
+
+        newMemos.splice(index, 1);
+        debouncedSetItem('memo', newMemos);
+        return newMemos;
+      });
+      if (index === selectedMemoIndex) {
+        setSelectedMemoIndex(0);
+      }
+    },
+    [selectedMemoIndex],
+  );
 
   return (
     <div className="App">
@@ -51,6 +74,7 @@ function App() {
         addMemo={addMemo}
         selectedMemoIndex={selectedMemoIndex}
         setSelectedMemoIndex={setSelectedMemoIndex}
+        deleteMemo={deleteMemo}
       />
       <MemoContainer memo={memos[selectedMemoIndex]} setMemo={setMemo} />
     </div>
